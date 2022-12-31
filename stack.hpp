@@ -6,9 +6,8 @@
 template<class T>
 struct cpu::stack
 {
-   static constexpr auto ADDRESS_WIDTH = 256;
-   std::array<T, ADDRESS_WIDTH> data{};
-   std::uint8_t sp = ADDRESS_WIDTH - 1;
+   std::vector<T> data;
+   std::size_t sp = 0;
    bool stack_empty = true;
 
    void reset(void)
@@ -18,15 +17,29 @@ struct cpu::stack
          i = 0x00;
       }
 
-      sp = ADDRESS_WIDTH - 1;
+      sp = address_width() - 1;
       stack_empty = true;
       return;
    }
 
-   stack(void)
+   stack(void) { }
+
+   stack(const std::size_t address_width)
    {
-      this->reset();
+      init(address_width);
       return;
+   }
+
+   void init(const std::size_t address_width = 256)
+   {
+      data.resize(address_width, 0);
+      sp = address_width - 1;
+      return;
+   }
+
+   std::size_t address_width(void) const
+   {
+      return data.size();
    }
 
    int push(const T& new_element)
@@ -56,7 +69,7 @@ struct cpu::stack
       if (stack_empty) return 1;
       retrieved_value = data[sp];
 
-      if (sp < ADDRESS_WIDTH - 1)
+      if (sp < address_width() - 1)
       {
          sp++;
       }
@@ -69,7 +82,7 @@ struct cpu::stack
 
    T first_element(void) const
    {
-      return data[ADDRESS_WIDTH - 1];
+      return data[address_width() - 1];
    }
 
    T last_element(void) const
@@ -79,7 +92,7 @@ struct cpu::stack
 
    auto num_elements(void) const
    {
-      return ADDRESS_WIDTH - 1 - sp;
+      return address_width() - 1 - sp;
    }
 };
 
