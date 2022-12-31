@@ -4,3 +4,6 @@ Based on microcontroller ATmega328P - 32kB of ROM and 2 kB of RAM.
 The instruction set constitutes of a subset of the Atmel AVR instruction set.
 Includes data memory, program memory, stack and pin change interrupts.
 
+Se corresponding CPU with dynamic memory here:
+https://github.com/Erik-Pihl-misc/CPU_demo_in_CPP-Dynamic-memory-.git
+
