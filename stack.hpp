@@ -6,7 +6,9 @@
 template<class T>
 struct cpu::stack
 {
-   std::vector<T> data;
+   static constexpr auto ADDRESS_WIDTH = 256;
+
+   std::array<T, ADDRESS_WIDTH> data;
    std::size_t sp = 0;
    bool stack_empty = true;
 
@@ -22,18 +24,9 @@ struct cpu::stack
       return;
    }
 
-   stack(void) { }
-
-   stack(const std::size_t address_width)
+   stack(void)
    {
-      init(address_width);
-      return;
-   }
-
-   void init(const std::size_t address_width = 256)
-   {
-      data.resize(address_width, 0);
-      sp = address_width - 1;
+      reset();
       return;
    }
 

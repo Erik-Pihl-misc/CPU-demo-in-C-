@@ -20,7 +20,7 @@ struct cpu::control_unit
    program_memory prog_mem;
    data_memory<std::uint8_t> data_mem;
    stack<std::uint8_t> stack;
-   std::array<std::uint8_t, NUM_REGISTERS> reg{};
+   std::array<std::uint8_t, NUM_REGISTERS> reg;
 
    std::uint8_t pc = 0x00;
    std::uint8_t mar = 0x00;
@@ -32,12 +32,15 @@ struct cpu::control_unit
    std::uint8_t op2 = 0x00;
 
    state current_state = state::fetch;
-   std::uint8_t last_input = 0x00;
+
+   std::uint8_t last_input0 = 0x00;
+   std::uint8_t last_input1 = 0x00;
+   std::uint8_t last_input2 = 0x00;
+   std::uint8_t interrupt_source = 0x00;
 
    control_unit(void) 
    {
-      data_mem.init(2000);
-      stack.init(256);
+      reset();
       return;
    }
 
@@ -55,7 +58,11 @@ struct cpu::control_unit
       op2 = 0x00;
 
       current_state = state::fetch;
-      last_input = 0x00;
+
+      last_input0 = 0x00;
+      last_input1 = 0x00;
+      last_input2 = 0x00;
+      interrupt_source = 0x00;
 
       for (auto& i : reg)
       {
@@ -90,7 +97,7 @@ struct cpu::control_unit
       return negative();
    }
 
-   void generate_interrupt(const std::uint8_t interrupt_vector)
+   void store_register_content_before_interrupt(void)
    {
       stack.push(pc);
       stack.push(mar);
@@ -105,18 +112,24 @@ struct cpu::control_unit
       stack.push(op2);
 
       stack.push(static_cast<std::uint8_t>(current_state));
-     
+
       for (auto& i : reg)
       {
          stack.push(i);
       }
 
+      return;
+   }
+
+   void generate_interrupt(const std::uint8_t interrupt_vector)
+   {
+      store_register_content_before_interrupt();
       pc = interrupt_vector;
       current_state = state::fetch;
       return;
    }
 
-   void return_from_interrupt(void)
+   void restore_register_content_after_interrupt(void)
    {
       std::uint8_t temp = 0x00;
 
@@ -145,28 +158,102 @@ struct cpu::control_unit
       return;
    }
 
-   void monitor_interrupts(void)
+   void clear_interrupt_flag(void)
    {
-      const auto current_input = data_mem.read(PINB);
+      auto pci_flags = data_mem.read(PCIFR);
 
+      if (interrupt_source == PCINT0_vect)
+      {
+         clr(pci_flags, PCIF0);
+      }
+      else if (interrupt_source == PCINT1_vect)
+      {
+         clr(pci_flags, PCIF1);
+      }
+      else if (interrupt_source == PCINT2_vect)
+      {
+         clr(pci_flags, PCIF2);
+      }
+
+      data_mem.write(PCIFR, pci_flags);
+      return;
+   }
+
+   void return_from_interrupt(void)
+   {
+      interrupt_source = 0x00;
+      restore_register_content_after_interrupt();
+      clear_interrupt_flag();
+      return;
+   }
+
+   void check_interrupt_flags(void)
+   {
       if (interrupt_enabled())
       {
-         if (data_mem.read(PCICR) & (1 << PCIE0))
+         const auto interrupt_flags = data_mem.read(PCIFR);
+
+         if (read(interrupt_flags, PCIF0))
          {
-            for (auto i = 0; i < DATA_WIDTH; ++i)
+            interrupt_source = PCINT0_vect;
+         }
+         else if (read(interrupt_flags, PCIF1))
+         {
+            interrupt_source = PCINT1_vect;
+         }
+         else if (read(interrupt_flags, PCIF2))
+         {
+            interrupt_source = PCINT2_vect;
+         }
+
+         if (interrupt_source != RESET_vect)
+         {
+            generate_interrupt(interrupt_source);
+         }
+      }
+      return;
+   }
+
+   void update_pci_flag(const std::uint8_t pin_reg,
+                        const std::uint8_t pcmsk_reg,
+                        const std::uint8_t pcif_bit,
+                        std::uint8_t& last_input,
+                        std::uint8_t& pci_flags)
+   {
+      const auto current_input = data_mem.read(pin_reg);
+
+      for (auto i = 0; i < DATA_WIDTH; ++i)
+      {
+         if (data_mem.read(pcmsk_reg) & (1 << i))
+         {
+            if (read(last_input, i) != read(current_input, i))
             {
-               if (data_mem.read(PCMSK0) & (1 << i))
-               {
-                  if (read(last_input, i) != read(current_input, i))
-                  {
-                     generate_interrupt(prog_mem.PCINT0_vect);
-                  }
-               }
+               set(pci_flags, pcif_bit);
             }
          }
       }
 
       last_input = current_input;
+      return;
+   }
+
+   void monitor_pin_change_interrupts(void)
+   {
+      std::uint8_t pci_flags = 0x00;
+      update_pci_flag(PINB, PCMSK0, PCIF0, last_input0, pci_flags);
+      update_pci_flag(PINC, PCMSK1, PCIF1, last_input1, pci_flags);
+      update_pci_flag(PIND, PCMSK2, PCIF2, last_input2, pci_flags);
+      data_mem.write(PCIFR, pci_flags);
+      return;
+   }
+
+   void monitor_interrupts(void)
+   {
+      if (interrupt_source == 0x00)
+      {
+         monitor_pin_change_interrupts();
+         check_interrupt_flags();
+      }
       return;
    }
 
@@ -204,6 +291,8 @@ struct cpu::control_unit
       else if (op_code == DEC) result = a - 1;
       else if (op_code == ADDI || op_code == ADD) result = a + b;
       else if (op_code == SUBI || op_code == SUB) result = a - b;
+      else if (op_code == LSL) result = a << 1;
+      else if (op_code == LSR) result = a >> 1;
       else if (op_code == CPI || op_code == CP) result = a - b;
 
       sr |= get_status_bits(result, a, b);
@@ -287,6 +376,10 @@ struct cpu::control_unit
                reg[op1] = 0x00;
             }
             else if (op_code == INC || op_code == DEC)
+            {
+               reg[op1] = alu(reg[op1]);
+            }
+            else if (op_code == LSL || op_code == LSR)
             {
                reg[op1] = alu(reg[op1]);
             }

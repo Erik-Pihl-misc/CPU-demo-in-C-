@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <cstdint>
-#include <vector>
 #include <array>
 #include <string>
 #include <bitset>
@@ -32,11 +31,11 @@ namespace cpu
    static constexpr auto SUBI = 0x11;
    static constexpr auto ADD  = 0x12;
    static constexpr auto SUB  = 0x13;
-   static constexpr auto CPI  = 0x14;
-   static constexpr auto CP   = 0x15;
-   static constexpr auto JMP  = 0x16;
-   static constexpr auto CALL = 0x17;
-   static constexpr auto RET  = 0x18;
+   static constexpr auto LSL  = 0x14;
+   static constexpr auto LSR  = 0x15;
+   static constexpr auto CPI  = 0x16;
+   static constexpr auto CP   = 0x17;
+   static constexpr auto JMP  = 0x18;
    static constexpr auto BREQ = 0x19;
    static constexpr auto BRNE = 0x1A;
    static constexpr auto BRGT = 0x1B;
@@ -45,18 +44,43 @@ namespace cpu
    static constexpr auto BRLE = 0x1E;
    static constexpr auto PUSH = 0x1F;
 
-   static constexpr auto POP  = 0x20;
-   static constexpr auto SEI  = 0x21;
-   static constexpr auto CLI  = 0x22;
-   static constexpr auto RETI = 0x23;
+   static constexpr auto CALL = 0x20;
+   static constexpr auto RET  = 0x21;
+   static constexpr auto POP  = 0x22;
+   static constexpr auto SEI  = 0x23;
+   static constexpr auto CLI  = 0x24;
+   static constexpr auto RETI = 0x25;
 
    static constexpr auto DDRB   = 0x00;
    static constexpr auto PORTB  = 0x01;
    static constexpr auto PINB   = 0x02;
-   static constexpr auto PCICR  = 0x03;
-   static constexpr auto PCMSK0 = 0x04;
+
+   static constexpr auto DDRC  = 0x03;
+   static constexpr auto PORTC = 0x04;
+   static constexpr auto PINC  = 0x05;
+
+   static constexpr auto DDRD  = 0x06;
+   static constexpr auto PORTD = 0x07;
+   static constexpr auto PIND  = 0x08;
+
+   static constexpr auto PCICR  = 0x09;
+   static constexpr auto PCIFR  = 0x0A;
+   static constexpr auto PCMSK0 = 0x0B;
+   static constexpr auto PCMSK1 = 0x0C;
+   static constexpr auto PCMSK2 = 0x0D;
 
    static constexpr auto PCIE0 = 0x00;
+   static constexpr auto PCIE1 = 0x01;
+   static constexpr auto PCIE2 = 0x02;
+
+   static constexpr auto PCIF0 = 0x00;
+   static constexpr auto PCIF1 = 0x01;
+   static constexpr auto PCIF2 = 0x02;
+
+   static constexpr auto RESET_vect = 0x00;
+   static constexpr auto PCINT0_vect = 0x02;
+   static constexpr auto PCINT1_vect = 0x04;
+   static constexpr auto PCINT2_vect = 0x06;
 
    static constexpr auto R0 = 0x00;
    static constexpr auto R1 = 0x01;
@@ -141,8 +165,8 @@ namespace cpu
       else if (instruction == SUBI) return "SUBI";
       else if (instruction == ADDI) return "ADD";
       else if (instruction == SUBI) return "SUB";
-      else if (instruction == CPI) return "CPI";
-      else if (instruction == CP) return "CP";
+      else if (instruction == LSL) return "LSL";
+      else if (instruction == LSR) return "LSR";
       else if (instruction == BREQ) return "BREQ";
       else if (instruction == BRNE) return "BRNE";
       else if (instruction == BRGE) return "BRGE";
@@ -150,6 +174,8 @@ namespace cpu
       else if (instruction == BRLE) return "BRLE";
       else if (instruction == BRLT) return "BRLT";
       else if (instruction == JMP) return "JMP";
+      else if (instruction == CPI) return "CPI";
+      else if (instruction == CP) return "CP";
       else if (instruction == CALL) return "CALL";
       else if (instruction == RET) return "RET";
       else if (instruction == PUSH) return "PUSH";

@@ -10,16 +10,10 @@ struct cpu::program_memory
    static constexpr auto BUTTON1 = 5;
    static constexpr auto led_enabled = 100; 
 
-   static constexpr auto RESET_vect = 0x00;
-   static constexpr auto PCINT0_vect = 0x02;
-   static constexpr auto ISR_vect_end = PCINT0_vect + 2;
-
-   static constexpr auto ISR_PCINT0 = ISR_vect_end;
+   static constexpr auto ISR_PCINT0 = PCINT0_vect + 2;
    static constexpr auto ISR_PCINT0_end = ISR_PCINT0 + 4;
 
-   static constexpr auto ISR_end = ISR_PCINT0 + 5;
-
-   static constexpr auto main = ISR_end;
+   static constexpr auto main = ISR_PCINT0 + 5;
    static constexpr auto main_loop = main + 1;
    static constexpr auto led_toggle = main_loop + 1;
    static constexpr auto led_toggle_end = led_toggle + 4;
@@ -34,6 +28,11 @@ struct cpu::program_memory
    static constexpr auto button_is_pressed = init_globals + 3;
    static constexpr auto end = button_is_pressed + 3;
 
+   std::size_t address_width(void) const
+   {
+      return this->data.size();
+   }
+
    static std::uint32_t assemble(const std::uint8_t op_code,
                                  const std::uint8_t op1 = 0x00,
                                  const std::uint8_t op2 = 0x00)
@@ -44,7 +43,7 @@ struct cpu::program_memory
       return instruction;
    }
 
-   const std::vector<std::uint32_t> data =
+   const std::array<std::uint32_t, ADDRESS_WIDTH> data =
    {
       /* RESET_vect: */
       assemble(JMP, main),                 /* JMP main */
@@ -117,7 +116,7 @@ struct cpu::program_memory
 
    std::uint32_t read(const std::uint32_t address)
    {
-      if (address < ADDRESS_WIDTH)
+      if (address < address_width())
       {
          return data[address];
       }

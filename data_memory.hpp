@@ -6,26 +6,8 @@
 template<class T>
 struct cpu::data_memory
 {
-   std::vector<T> data;
-
-   data_memory(void) { }
-
-   data_memory(const std::size_t address_width)
-   {
-      init(address_width);
-      return;
-   }
-
-   std::size_t address_width(void) const
-   {
-      return data.size();
-   }
-
-   void init(const std::size_t address_width = 2000)
-   {
-      data.resize(address_width, 0x00);
-      return;
-   }
+   static constexpr auto ADDRESS_WIDTH = 2000;
+   std::array<T, ADDRESS_WIDTH> data;
 
    void reset(void)
    {
@@ -34,6 +16,17 @@ struct cpu::data_memory
          i = 0x00;
       }
       return;
+   }
+
+   data_memory(void)
+   {
+      reset();
+      return;
+   }
+
+   std::size_t address_width(void) const
+   {
+      return data.size();
    }
 
    int write(const std::uint16_t address, const T& new_element)
